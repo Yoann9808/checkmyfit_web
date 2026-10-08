@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* Design tokens — charte Bois × Terracotta (reprise de la maquette)    */
+/* ------------------------------------------------------------------ */
+@theme {
+  --color-argile: #f5e8dc;
+  --color-terracotta: #b05c2a;
+  --color-palissandre: #4a2009;
+  --color-chene-pale: #deccb0;
+  --color-chene-dore: #c2a47a;
+  --color-noyer: #9a7040;
+  --color-wenge: #6b4c24;
+  --color-ebene: #221608;
+  --color-sable-brule: #d4a882;
+  --color-brique: #7a3a16;
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-body: var(--font-dm-sans), system-ui, sans-serif;
+
+  --radius-card: 1rem;
+  --radius-panel: 1.5rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  background: var(--color-argile);
+}
+
+body {
+  background: var(--color-argile);
+  color: var(--color-palissandre);
+  font-family: var(--font-body);
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Typographie de marque */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 300;
+}
+.font-body {
+  font-family: var(--font-body);
+  font-weight: 300;
+}
+
+/* Label en capitales espacées, très utilisé dans la maquette */
+.label {
+  font-family: var(--font-body);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.6875rem; /* 11px */
+}
+
+/* Champs de formulaire */
+.field {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-chene-dore);
+  background: rgb(255 255 255 / 0.4);
+  color: var(--color-palissandre);
+  outline: none;
+  width: 100%;
+  transition: border-color 150ms;
+}
+.field::placeholder {
+  color: var(--color-noyer);
+}
+.field:focus {
+  border-color: var(--color-terracotta);
+}
+
+/* Accessibilité : focus visible cohérent avec la charte */
+:focus-visible {
+  outline: 2px solid var(--color-terracotta);
+  outline-offset: 2px;
+}
+
+/* Zone de sécurité pour les barres fixes en bas sur mobile */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+input[type="range"] {
+  accent-color: var(--color-terracotta);
+}
