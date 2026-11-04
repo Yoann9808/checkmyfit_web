@@ -3,20 +3,29 @@ import { serverEnv } from "@/lib/env";
 import { familyOf } from "@/lib/catalog/taxonomy";
 import { TryOnProviderError, type TryOnInput, type TryOnOutput, type TryOnProvider } from "./types";
 
-const DEFAULT_MODEL = "gemini-2.5-flash-image";
+// 3.1 gère correctement les robes (remplace haut + bas) là où 2.5 garde le pantalon ; validé le 04/11/2026.
+const DEFAULT_MODEL = "gemini-3.1-flash-image";
 // 2 tentatives max par essayage : doit tenir dans le `maxDuration` (120 s) des routes
 const REQUEST_TIMEOUT_MS = 45_000;
 
+const FULL_BODY_CATEGORIES = ["Robe", "Combinaison"];
+const OUTERWEAR_CATEGORIES = ["Veste", "Blazer", "Manteau", "Parka", "Doudoune", "Trench-coat", "Coupe-vent"];
+
+/** Où et comment le vêtement se porte, pour guider le modèle. */
+function placementOf(category: string) {
+  if (FULL_BODY_CATEGORIES.includes(category))
+    return "as a complete outfit, replacing both their current top and their current bottoms (no trousers or jeans visible underneath)";
+  if (OUTERWEAR_CATEGORIES.includes(category))
+    return "as an outer layer over their current top, keeping the top visible underneath where the garment is open";
+  const family = familyOf(category);
+  if (family === "shoes") return "on their feet, replacing their current footwear";
+  if (family === "accessory") return "worn naturally as an accessory";
+  if (family === "bottom") return "on their lower body, replacing their current bottoms";
+  return "on their upper body, replacing their current top";
+}
+
 function buildPrompt(info: TryOnInput["garmentInfo"]) {
-  const family = familyOf(info.category);
-  const where =
-    family === "shoes"
-      ? "on their feet, replacing their current footwear"
-      : family === "accessory"
-        ? "worn naturally as an accessory"
-        : family === "bottom"
-          ? "on their lower body, replacing their current bottoms"
-          : "on their upper body, replacing their current top";
+  const where = placementOf(info.category);
 
   return [
     "You are a virtual try-on engine for an online clothing store.",
@@ -27,7 +36,7 @@ function buildPrompt(info: TryOnInput["garmentInfo"]) {
     "Strict rules:",
     "- Preserve the person's identity exactly: face, skin tone, hair, body shape, pose and proportions.",
     "- Preserve the background, framing and lighting of image 1.",
-    "- Reproduce the product faithfully: color, pattern, fabric, cut, length and fit as shown in image 2.",
+    "- Reproduce the product faithfully: color, pattern, fabric, cut, length, sleeves, neckline and fit exactly as shown in image 2. If the text description conflicts with image 2, image 2 wins.",
     "- Keep every other garment the person is wearing unchanged unless it is replaced by the product.",
     "- No text, no logos added, no watermark, no split view: output a single natural photo.",
   ]
