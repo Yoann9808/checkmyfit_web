@@ -69,7 +69,7 @@ export async function addOwnedItemAction(formData: FormData) {
     redirect("/dressing?erreur=enregistrement");
   }
   revalidatePath("/dressing");
-  redirect(`/dressing?onglet=${encodeURIComponent(category)}`);
+  redirect(`/dressing?onglet=mes-vetements&categorie=${encodeURIComponent(category)}`);
 }
 
 export async function deleteWardrobeItemAction(formData: FormData) {

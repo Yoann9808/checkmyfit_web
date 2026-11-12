@@ -15,7 +15,20 @@ import { cn, plural } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Mon dressing" };
 
-const FUTURE = "Futurs achats";
+const FUTURE = "futurs-achats";
+const OWNED = "mes-vetements";
+type Tab = typeof FUTURE | typeof OWNED;
+
+const TAB_LABELS: Record<Tab, string> = {
+  [FUTURE]: "Futurs achats",
+  [OWNED]: "Mes vêtements",
+};
+
+const pill = (active: boolean) =>
+  cn(
+    "rounded-full border border-noyer px-4 py-2 font-body text-xs whitespace-nowrap uppercase tracking-wide",
+    active ? "bg-ebene text-argile" : "text-palissandre hover:bg-chene-pale",
+  );
 
 export default async function WardrobePage({ searchParams }: PageProps<"/dressing">) {
   const params = await searchParams;
@@ -34,11 +47,14 @@ export default async function WardrobePage({ searchParams }: PageProps<"/dressin
     getSignedUrls("wardrobe", all.filter((i) => i.kind === "owned").map((i) => i.photo_path)),
   ]);
 
-  const ownedCategories = Array.from(new Set(all.filter((i) => i.kind === "owned").map((i) => i.category)));
-  const tabs = [FUTURE, ...ownedCategories];
-  const requested = typeof params.onglet === "string" ? params.onglet : FUTURE;
-  const tab = tabs.includes(requested) ? requested : FUTURE;
-  const visible = tab === FUTURE ? all.filter((i) => i.kind === "tryon") : all.filter((i) => i.kind === "owned" && i.category === tab);
+  const future = all.filter((i) => i.kind === "tryon");
+  const owned = all.filter((i) => i.kind === "owned");
+  const ownedCategories = Array.from(new Set(owned.map((i) => i.category))).sort((a, b) => a.localeCompare(b, "fr"));
+
+  const tab: Tab = params.onglet === OWNED ? OWNED : FUTURE;
+  const requestedCategory = typeof params.categorie === "string" ? params.categorie : null;
+  const category = requestedCategory && ownedCategories.includes(requestedCategory) ? requestedCategory : null;
+  const visible = tab === FUTURE ? future : category ? owned.filter((i) => i.category === category) : owned;
   const error = typeof params.erreur === "string" ? "L'ajout a échoué. Réessayez." : null;
 
   return (
@@ -55,21 +71,52 @@ export default async function WardrobePage({ searchParams }: PageProps<"/dressin
 
       {error && <p className="mb-4 rounded-xl bg-brique/10 px-4 py-3 font-body text-xs text-brique">{error}</p>}
 
-      <div className="-mx-4 mb-8 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
-        {tabs.map((t) => (
-          <Link
-            key={t}
-            href={t === FUTURE ? "/dressing" : `/dressing?onglet=${encodeURIComponent(t)}`}
-            className={cn(
-              "rounded-full border border-noyer px-4 py-2 font-body text-xs whitespace-nowrap uppercase tracking-wide",
-              tab === t ? "bg-ebene text-argile" : "text-palissandre hover:bg-chene-pale",
-            )}
-            aria-current={tab === t ? "page" : undefined}
-          >
-            {t}
+      <nav aria-label="Sections du dressing" className="mb-4 grid grid-cols-2 border-b border-chene-pale">
+        {([FUTURE, OWNED] as const).map((t) => {
+          const count = t === FUTURE ? future.length : owned.length;
+          const active = tab === t;
+          return (
+            <Link
+              key={t}
+              href={t === FUTURE ? "/dressing" : `/dressing?onglet=${OWNED}`}
+              className={cn(
+                "-mb-px flex items-center justify-center gap-2 border-b-2 px-2 py-3 font-body text-xs uppercase tracking-wide transition sm:text-sm",
+                active ? "border-terracotta text-ebene" : "border-transparent text-wenge hover:text-palissandre",
+              )}
+              aria-current={active ? "page" : undefined}
+            >
+              {TAB_LABELS[t]}
+              <span className={cn("rounded-full px-2 py-0.5 text-[10px]", active ? "bg-ebene text-argile" : "bg-chene-pale text-wenge")}>
+                {count}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <p className="mb-6 font-body text-xs text-wenge">
+        {tab === FUTURE
+          ? "Les pièces que vous avez essayées virtuellement et que vous envisagez d'acheter."
+          : "Les vêtements que vous possédez déjà, pour composer vos tenues."}
+      </p>
+
+      {tab === OWNED && ownedCategories.length > 1 && (
+        <div className="-mx-4 mb-8 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+          <Link href={`/dressing?onglet=${OWNED}`} className={pill(!category)} aria-current={!category ? "page" : undefined}>
+            Tout
           </Link>
-        ))}
-      </div>
+          {ownedCategories.map((c) => (
+            <Link
+              key={c}
+              href={`/dressing?onglet=${OWNED}&categorie=${encodeURIComponent(c)}`}
+              className={pill(category === c)}
+              aria-current={category === c ? "page" : undefined}
+            >
+              {c}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {visible.length === 0 ? (
         <p className="font-body text-sm text-wenge">
@@ -82,7 +129,7 @@ export default async function WardrobePage({ searchParams }: PageProps<"/dressin
               .
             </>
           ) : (
-            <>Rien dans « {tab} ». Ajoutez un de vos vêtements pour compléter votre dressing.</>
+            <>Aucun vêtement pour l&apos;instant. Ajoutez vos pièces pour compléter votre dressing.</>
           )}
         </p>
       ) : (
