@@ -12,6 +12,12 @@ const credentialsSchema = z.object({
   next: z.string().optional(),
 });
 
+const signUpSchema = credentialsSchema.extend({
+  ageAndTerms: z.literal("on", {
+    message: "Merci de confirmer votre âge et d'accepter les conditions pour créer un compte.",
+  }),
+});
+
 export type AuthState = { error?: string; info?: string } | undefined;
 
 const safeNext = safeInternalPath;
@@ -37,7 +43,7 @@ async function postLoginRedirect(next: string | undefined): Promise<never> {
 }
 
 export async function signUpAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const parsed = credentialsSchema.safeParse(Object.fromEntries(formData));
+  const parsed = signUpSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
   const { email, password, next } = parsed.data;
 
@@ -45,7 +51,11 @@ export async function signUpAction(_prev: AuthState, formData: FormData): Promis
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${publicEnv.siteUrl}/auth/callback?next=${encodeURIComponent(safeNext(next))}` },
+    options: {
+      emailRedirectTo: `${publicEnv.siteUrl}/auth/callback?next=${encodeURIComponent(safeNext(next))}`,
+      // Lu par le trigger handle_new_user pour horodater âge et CGU sur le profil
+      data: { age_and_terms_confirmed: true },
+    },
   });
   if (error) return { error: translateAuthError(error.message) };
 

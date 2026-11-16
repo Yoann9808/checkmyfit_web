@@ -3,39 +3,14 @@ import "server-only";
 import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
-import { PRICE_MAX_DEFAULT } from "./taxonomy";
+import { CATEGORIES, GENDERS, PIECE_TYPES, categoriesOfPieceType, compareSizes, pieceTypeOf } from "./taxonomy";
+import { COLOR_FAMILIES, colorFamilyOf } from "./colors";
+import type { CatalogFilters, Facets } from "./filters";
 import type { Tables } from "@/lib/supabase/database.types";
 
 export type Product = Tables<"products">;
 
-export type CatalogFilters = {
-  category?: string;
-  brand?: string;
-  color?: string;
-  gender?: string;
-  priceMax?: number;
-  q?: string;
-};
-
-export const ALL = "Toutes";
-
-/** Lit les filtres depuis les paramètres d'URL. */
-export function parseFilters(params: Record<string, string | string[] | undefined>): CatalogFilters {
-  const one = (k: string) => {
-    const v = params[k];
-    const s = Array.isArray(v) ? v[0] : v;
-    return s && s !== ALL ? s : undefined;
-  };
-  const priceMax = Number(one("prix"));
-  return {
-    category: one("categorie"),
-    brand: one("marque"),
-    color: one("couleur"),
-    gender: one("genre"),
-    priceMax: Number.isFinite(priceMax) && priceMax > 0 && priceMax < PRICE_MAX_DEFAULT ? priceMax : undefined,
-    q: one("q"),
-  };
-}
+export { parseFilters, type CatalogFilters, type Facets } from "./filters";
 
 export const listProducts = cache(async (filters: CatalogFilters = {}): Promise<Product[]> => {
   if (!isSupabaseConfigured) return [];
@@ -46,16 +21,25 @@ export const listProducts = cache(async (filters: CatalogFilters = {}): Promise<
     .eq("is_active", true)
     .order("created_at", { ascending: false });
 
+  if (filters.gender && (GENDERS as readonly string[]).includes(filters.gender))
+    query = query.eq("gender", filters.gender as Product["gender"]);
+  if (filters.pieceType) query = query.in("category", categoriesOfPieceType(filters.pieceType));
   if (filters.category) query = query.eq("category", filters.category);
   if (filters.brand) query = query.eq("brand", filters.brand);
-  if (filters.color) query = query.eq("color", filters.color);
-  if (filters.gender) query = query.eq("gender", filters.gender as Product["gender"]);
+  if (filters.material) query = query.eq("material", filters.material);
+  if (filters.pattern) query = query.eq("pattern", filters.pattern);
+  if (filters.size) query = query.contains("sizes", [filters.size]);
+  if (filters.priceMin) query = query.gte("price", filters.priceMin);
   if (filters.priceMax) query = query.lte("price", filters.priceMax);
+  if (filters.promo === "solde") query = query.eq("is_on_sale", true);
+  if (filters.promo === "nouveautes") query = query.eq("is_new", true);
   if (filters.q) query = query.or(`name.ilike.%${filters.q}%,brand.ilike.%${filters.q}%`);
 
   const { data, error } = await query;
   if (error) throw error;
-  return data ?? [];
+  const products = data ?? [];
+  // Couleur : texte libre rattaché à une famille par mots-clés, filtrée ici
+  return filters.color ? products.filter((p) => colorFamilyOf(p.color) === filters.color) : products;
 });
 
 export const getProductBySlug = cache(async (slug: string): Promise<Product | null> => {
@@ -72,18 +56,60 @@ export const getProductById = cache(async (id: string): Promise<Product | null> 
   return data ?? null;
 });
 
-/** Valeurs distinctes pour les filtres (marques, couleurs). */
-export const getFacets = cache(async () => {
-  if (!isSupabaseConfigured) return { brands: [] as string[], colors: [] as string[] };
+const EMPTY_FACETS: Facets = {
+  genders: [],
+  pieceTypes: [],
+  categories: [],
+  brands: [],
+  sizes: [],
+  colors: [],
+  materials: [],
+  patterns: [],
+  price: { min: 0, max: 0 },
+  promos: { solde: false, nouveautes: false },
+};
+
+const byFr = (a: string, b: string) => a.localeCompare(b, "fr");
+const distinct = (values: Array<string | null | undefined>) =>
+  Array.from(new Set(values.filter((v): v is string => Boolean(v))));
+/** Garde l'ordre de référence pour les valeurs connues, puis les autres par ordre alphabétique. */
+const ordered = (values: string[], reference: readonly string[]) => [
+  ...reference.filter((r) => values.includes(r)),
+  ...values.filter((v) => !reference.includes(v)).sort(byFr),
+];
+
+/**
+ * Valeurs de filtres calculées à partir des fiches produits actives :
+ * une nouvelle marque, catégorie, couleur ou matière importée apparaît
+ * automatiquement dans les filtres, et une valeur sans produit disparaît.
+ */
+export const getFacets = cache(async (): Promise<Facets> => {
+  if (!isSupabaseConfigured) return EMPTY_FACETS;
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.from("products").select("brand, color").eq("is_active", true);
-  const brands = Array.from(new Set((data ?? []).map((r) => r.brand))).sort((a, b) =>
-    a.localeCompare(b, "fr"),
-  );
-  const colors = Array.from(new Set((data ?? []).map((r) => r.color).filter(Boolean) as string[])).sort(
-    (a, b) => a.localeCompare(b, "fr"),
-  );
-  return { brands, colors };
+  const { data } = await supabase
+    .from("products")
+    .select("category, brand, color, gender, price, sizes, material, pattern, is_on_sale, is_new")
+    .eq("is_active", true);
+  const rows = data ?? [];
+  if (rows.length === 0) return EMPTY_FACETS;
+
+  const prices = rows.map((r) => Number(r.price));
+  const categories = distinct(rows.map((r) => r.category));
+  return {
+    genders: ordered(distinct(rows.map((r) => r.gender)), GENDERS),
+    pieceTypes: ordered(distinct(categories.map(pieceTypeOf)), PIECE_TYPES),
+    categories: ordered(categories, CATEGORIES),
+    brands: distinct(rows.map((r) => r.brand)).sort(byFr),
+    sizes: distinct(rows.flatMap((r) => r.sizes)).sort(compareSizes),
+    colors: ordered(
+      distinct(rows.map((r) => colorFamilyOf(r.color))),
+      COLOR_FAMILIES.map((f) => f.name),
+    ),
+    materials: distinct(rows.map((r) => r.material)).sort(byFr),
+    patterns: distinct(rows.map((r) => r.pattern)).sort(byFr),
+    price: { min: Math.floor(Math.min(...prices)), max: Math.ceil(Math.max(...prices)) },
+    promos: { solde: rows.some((r) => r.is_on_sale), nouveautes: rows.some((r) => r.is_new) },
+  };
 });
 
 export const getHomeProducts = cache(async () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { SilhouetteIcon } from "@/components/ui/garment-icons";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { setReferencePhotoAction } from "@/lib/profile/actions";
 import { cn } from "@/lib/utils";
+import { SITE } from "@/lib/site";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_EDGE = 1600;
@@ -39,11 +41,14 @@ export function PhotoUploader({
   currentUrl,
   next,
   initialError,
+  needsAgeConfirmation = false,
 }: {
   userId: string;
   currentUrl: string | null;
   next: string;
   initialError?: string;
+  /** Compte créé sans la case d'inscription (Google) : âge et CGU à confirmer ici. */
+  needsAgeConfirmation?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(currentUrl);
@@ -144,6 +149,19 @@ export function PhotoUploader({
           Je peux la remplacer ou la supprimer à tout moment depuis mon compte.
         </span>
       </label>
+
+      {needsAgeConfirmation && (
+        <label className="flex items-start gap-3 font-body text-xs text-wenge">
+          <input type="checkbox" name="ageAndTerms" required className="mt-0.5 accent-terracotta" />
+          <span>
+            J&apos;ai {SITE.minimumAge} ans ou plus, cette photo est bien la mienne, et j&apos;accepte les{" "}
+            <Link href="/legal/cgu" target="_blank" className="text-terracotta underline underline-offset-2">
+              CGU et CGV
+            </Link>
+            .
+          </span>
+        </label>
+      )}
 
       {error && (
         <p role="alert" className="rounded-xl bg-brique/10 px-4 py-3 font-body text-xs text-brique">

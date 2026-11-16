@@ -156,6 +156,7 @@ export type Database = {
           care: string | null
           category: string
           color: string | null
+          compare_at_price: number | null
           created_at: string
           currency: string
           description: string | null
@@ -166,10 +167,13 @@ export type Database = {
           image_source_url: string | null
           is_active: boolean
           is_new: boolean
+          is_on_sale: boolean | null
           is_popular: boolean
           made_in: string | null
+          material: string | null
           merchant: string
           name: string
+          pattern: string | null
           price: number
           size_advice: string | null
           sizes: string[]
@@ -182,6 +186,7 @@ export type Database = {
           care?: string | null
           category: string
           color?: string | null
+          compare_at_price?: number | null
           created_at?: string
           currency?: string
           description?: string | null
@@ -192,10 +197,13 @@ export type Database = {
           image_source_url?: string | null
           is_active?: boolean
           is_new?: boolean
+          is_on_sale?: boolean | null
           is_popular?: boolean
           made_in?: string | null
+          material?: string | null
           merchant: string
           name: string
+          pattern?: string | null
           price: number
           size_advice?: string | null
           sizes?: string[]
@@ -208,6 +216,7 @@ export type Database = {
           care?: string | null
           category?: string
           color?: string | null
+          compare_at_price?: number | null
           created_at?: string
           currency?: string
           description?: string | null
@@ -218,10 +227,13 @@ export type Database = {
           image_source_url?: string | null
           is_active?: boolean
           is_new?: boolean
+          is_on_sale?: boolean | null
           is_popular?: boolean
           made_in?: string | null
+          material?: string | null
           merchant?: string
           name?: string
+          pattern?: string | null
           price?: number
           size_advice?: string | null
           sizes?: string[]
@@ -232,6 +244,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age_confirmed_at: string | null
           created_at: string
           credits_balance: number
           email: string | null
@@ -240,9 +253,11 @@ export type Database = {
           photo_consent_at: string | null
           reference_photo_path: string | null
           role: Database["public"]["Enums"]["user_role"]
+          terms_accepted_at: string | null
           updated_at: string
         }
         Insert: {
+          age_confirmed_at?: string | null
           created_at?: string
           credits_balance?: number
           email?: string | null
@@ -251,9 +266,11 @@ export type Database = {
           photo_consent_at?: string | null
           reference_photo_path?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          terms_accepted_at?: string | null
           updated_at?: string
         }
         Update: {
+          age_confirmed_at?: string | null
           created_at?: string
           credits_balance?: number
           email?: string | null
@@ -262,9 +279,43 @@ export type Database = {
           photo_consent_at?: string | null
           reference_photo_path?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          terms_accepted_at?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      saved_products: {
+        Row: {
+          created_at: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_products_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stripe_events: {
         Row: {

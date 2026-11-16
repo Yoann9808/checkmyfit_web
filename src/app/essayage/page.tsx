@@ -10,6 +10,21 @@ import { getFacets, listProducts, parseFilters } from "@/lib/catalog/queries";
 import { getSessionUser } from "@/lib/auth/session";
 import { getSignedUrl } from "@/lib/storage/signed-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { listSavedProducts } from "@/lib/saved/queries";
+import type { Product } from "@/lib/catalog/queries";
+import type { PickerProduct } from "@/components/tryon/tryon-picker";
+
+const toPicker = (p: Product): PickerProduct => ({
+  id: p.id,
+  slug: p.slug,
+  name: p.name,
+  brand: p.brand,
+  category: p.category,
+  gender: p.gender,
+  price: Number(p.price),
+  currency: p.currency,
+  image_path: p.image_path,
+});
 
 export const metadata: Metadata = { title: "Essayage virtuel" };
 
@@ -19,7 +34,13 @@ export const maxDuration = 120;
 export default async function TryOnPage({ searchParams }: PageProps<"/essayage">) {
   const params = await searchParams;
   const filters = parseFilters(params);
-  const [session, products, facets] = await Promise.all([getSessionUser(), listProducts(filters), getFacets()]);
+  const [session, products, facets, saved] = await Promise.all([
+    getSessionUser(),
+    listProducts(filters),
+    getFacets(),
+    listSavedProducts(),
+  ]);
+  const savedIds = new Set(saved.map((p) => p.id));
 
   const photoUrl = await getSignedUrl("reference-photos", session?.profile.reference_photo_path);
 
@@ -67,30 +88,19 @@ export default async function TryOnPage({ searchParams }: PageProps<"/essayage">
       <div className="grid items-start gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-8">
         <aside className="md:sticky md:top-24 md:flex md:h-[calc(100vh-140px)] md:flex-col">{photoPanel}</aside>
         <div>
-          <Suspense>
-            <FilterBar brands={facets.brands} colors={facets.colors} />
-          </Suspense>
-          {products.length === 0 ? (
-            <p className="mt-8 font-body text-sm text-wenge">Rien ici pour ces filtres. Essayez une autre combinaison.</p>
-          ) : (
-            <TryOnPicker
-              products={products.map((p) => ({
-                id: p.id,
-                slug: p.slug,
-                name: p.name,
-                brand: p.brand,
-                category: p.category,
-                gender: p.gender,
-                price: Number(p.price),
-                currency: p.currency,
-                image_path: p.image_path,
-              }))}
-              tryons={tryons}
-              isLoggedIn={Boolean(session)}
-              hasPhoto={Boolean(photoUrl)}
-              credits={session?.profile.credits_balance ?? 0}
-            />
-          )}
+          <TryOnPicker
+            filters={
+              <Suspense>
+                <FilterBar facets={facets} />
+              </Suspense>
+            }
+            products={products.filter((p) => !savedIds.has(p.id)).map(toPicker)}
+            saved={saved.map(toPicker)}
+            tryons={tryons}
+            isLoggedIn={Boolean(session)}
+            hasPhoto={Boolean(photoUrl)}
+            credits={session?.profile.credits_balance ?? 0}
+          />
           {!session && (
             <div className="mt-8 md:hidden">
               <ButtonLink href="/inscription?next=/essayage" className="w-full">

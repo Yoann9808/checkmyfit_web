@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { CATEGORIES, GENDERS } from "@/lib/catalog/taxonomy";
+import { CATEGORIES, GENDERS, PATTERN_SUGGESTIONS } from "@/lib/catalog/taxonomy";
 import { saveProductAction, type ProductFormState } from "@/lib/admin/actions";
 import type { Tables } from "@/lib/supabase/database.types";
 
@@ -72,6 +72,18 @@ export function ProductForm({ product, saved }: { product?: Product | null; save
       </Field>
       <Field name="color" label="Couleur" error={e.color}>
         <input id="color" name="color" defaultValue={p?.color ?? ""} className="field" />
+      </Field>
+      <Field name="compare_at_price" label="Prix barré (si en solde)" error={e.compare_at_price}>
+        <input id="compare_at_price" name="compare_at_price" type="number" step="0.01" min="0" defaultValue={p?.compare_at_price != null ? Number(p.compare_at_price) : ""} className="field" />
+      </Field>
+      <Field name="material" label="Matière" error={e.material}>
+        <input id="material" name="material" defaultValue={p?.material ?? ""} placeholder="Coton, lin, laine, denim…" className="field" />
+      </Field>
+      <Field name="pattern" label="Motif" error={e.pattern}>
+        <input id="pattern" name="pattern" list="pattern-options" defaultValue={p?.pattern ?? ""} placeholder="Uni, rayé, carreaux, imprimé…" className="field" />
+        <datalist id="pattern-options">
+          {PATTERN_SUGGESTIONS.map((m) => <option key={m} value={m} />)}
+        </datalist>
       </Field>
       <Field name="sizes" label="Tailles (séparées par |)" error={e.sizes}>
         <input id="sizes" name="sizes" defaultValue={p?.sizes.join("|") ?? ""} placeholder="XS|S|M|L|XL" className="field" />

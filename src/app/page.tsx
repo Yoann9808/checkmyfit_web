@@ -4,12 +4,26 @@ import { Badge } from "@/components/ui/badge";
 import { ProductGrid } from "@/components/catalog/product-card";
 import { getHomeProducts } from "@/lib/catalog/queries";
 import { getUserTryOnIds } from "@/lib/tryon/queries";
+import { getSavedProductIds } from "@/lib/saved/queries";
+import { getSessionUser } from "@/lib/auth/session";
 
-export default async function HomePage() {
-  const [{ newest, popular }, tryOnIds] = await Promise.all([getHomeProducts(), getUserTryOnIds()]);
+export default async function HomePage({ searchParams }: PageProps<"/">) {
+  const { compte } = await searchParams;
+  const [{ newest, popular }, tryOnIds, savedIds, session] = await Promise.all([
+    getHomeProducts(),
+    getUserTryOnIds(),
+    getSavedProductIds(),
+    getSessionUser(),
+  ]);
+  const gridProps = { tryOnIds, savedIds, isLoggedIn: Boolean(session) };
 
   return (
     <>
+      {compte === "supprime" && (
+        <p role="status" className="mx-auto mt-6 max-w-6xl px-4 font-body text-xs text-palissandre sm:px-5">
+          <span className="block rounded-xl bg-chene-pale px-4 py-3">Votre compte et toutes vos données ont été supprimés.</span>
+        </p>
+      )}
       <section className="mx-auto grid max-w-6xl items-center gap-8 px-4 pt-8 pb-14 sm:px-5 md:grid-cols-2 md:gap-10 md:pt-12">
         <div>
           <Badge tone="ia">Essai IA disponible</Badge>
@@ -42,12 +56,12 @@ export default async function HomePage() {
 
       {newest.length > 0 && (
         <HomeSection title="Nouveautés">
-          <ProductGrid products={newest} tryOnIds={tryOnIds} />
+          <ProductGrid products={newest} {...gridProps} />
         </HomeSection>
       )}
       {popular.length > 0 && (
         <HomeSection title="Les plus demandés">
-          <ProductGrid products={popular} tryOnIds={tryOnIds} />
+          <ProductGrid products={popular} {...gridProps} />
         </HomeSection>
       )}
       {newest.length === 0 && (

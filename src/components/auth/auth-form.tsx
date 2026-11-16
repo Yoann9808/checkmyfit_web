@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { signInAction, signInWithGoogleAction, signUpAction, type AuthState } from "@/lib/auth/actions";
+import { SITE } from "@/lib/site";
 
 export function AuthForm({ mode, next, initialError }: { mode: "signin" | "signup"; next: string; initialError?: string }) {
   const action = mode === "signup" ? signUpAction : signInAction;
@@ -39,6 +40,22 @@ export function AuthForm({ mode, next, initialError }: { mode: "signin" | "signu
             placeholder="8 caractères minimum"
           />
         </label>
+        {mode === "signup" && (
+          <label className="flex items-start gap-3 font-body text-xs text-wenge">
+            <input type="checkbox" name="ageAndTerms" required className="mt-0.5 accent-terracotta" />
+            <span>
+              J&apos;ai {SITE.minimumAge} ans ou plus et j&apos;accepte les{" "}
+              <Link href="/legal/cgu" target="_blank" className="text-terracotta underline underline-offset-2">
+                CGU et CGV
+              </Link>{" "}
+              ainsi que la{" "}
+              <Link href="/legal/confidentialite" target="_blank" className="text-terracotta underline underline-offset-2">
+                politique de confidentialité
+              </Link>
+              .
+            </span>
+          </label>
+        )}
         {error && (
           <p role="alert" className="rounded-xl bg-brique/10 px-4 py-3 font-body text-xs text-brique">
             {error}

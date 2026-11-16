@@ -91,3 +91,64 @@ body {
 input[type="range"] {
   accent-color: var(--color-terracotta);
 }
+
+/* Curseur de prix à deux poignées : deux <input type="range"> superposés,
+   seules les poignées captent le pointeur */
+.range-dual {
+  position: relative;
+  height: 1.5rem;
+}
+.range-dual input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+  appearance: none;
+}
+.range-dual input[type="range"]::-webkit-slider-thumb {
+  pointer-events: auto;
+  appearance: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 9999px;
+  background: var(--color-terracotta);
+  border: 2px solid var(--color-argile);
+  cursor: pointer;
+  margin-top: calc((0.25rem - 1.1rem) / 2);
+}
+.range-dual input[type="range"]::-moz-range-thumb {
+  pointer-events: auto;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: var(--color-terracotta);
+  border: 2px solid var(--color-argile);
+  cursor: pointer;
+}
+.range-dual input[type="range"]::-moz-range-track {
+  background: transparent;
+}
+.range-dual input[type="range"]::-webkit-slider-runnable-track {
+  height: 0.25rem;
+  background: transparent;
+}
+.range-dual .range-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 0.25rem;
+  transform: translateY(-50%);
+  border-radius: 9999px;
+  background: var(--color-chene-pale);
+}
+.range-dual .range-fill {
+  position: absolute;
+  top: 50%;
+  height: 0.25rem;
+  transform: translateY(-50%);
+  border-radius: 9999px;
+  background: var(--color-terracotta);
+}

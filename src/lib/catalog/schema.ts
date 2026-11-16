@@ -30,6 +30,21 @@ const sizes = z
 
 const url = trimmed.url("URL invalide");
 
+/** Prix barré optionnel (vide = pas de promotion). */
+const optionalPrice = z
+  .union([z.number(), z.string()])
+  .optional()
+  .transform((v) => {
+    if (v === undefined || v === "") return null;
+    const n = typeof v === "number" ? v : Number(String(v).replace(",", ".").replace(/[^\d.]/g, ""));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  });
+
+/** « coton BIO » -> « Coton bio » : homogénéise les valeurs de filtres. */
+const label = trimmed
+  .optional()
+  .transform((v) => (v ? v.charAt(0).toLocaleUpperCase("fr") + v.slice(1).toLocaleLowerCase("fr") : null));
+
 /** Schéma d'un produit tel qu'il arrive du CSV ou du formulaire admin. */
 export const productInputSchema = z.object({
   external_id: trimmed.min(1, "Identifiant externe requis"),
@@ -40,6 +55,9 @@ export const productInputSchema = z.object({
   price,
   currency: trimmed.default("EUR"),
   color: optionalText,
+  material: label,
+  pattern: label,
+  compare_at_price: optionalPrice,
   description: optionalText,
   care: optionalText,
   made_in: optionalText,
@@ -65,6 +83,9 @@ export const CSV_COLUMNS = [
   "price",
   "currency",
   "color",
+  "material",
+  "pattern",
+  "compare_at_price",
   "description",
   "care",
   "made_in",
@@ -89,6 +110,9 @@ export const CSV_TEMPLATE = [
     "89",
     "EUR",
     "Rouge brique",
+    "Coton",
+    "Uni",
+    "109",
     "\"Un sweat à capuche en molleton épais, capuche doublée, poche kangourou.\"",
     "Lavage machine à 30°C",
     "Fabriqué au Portugal",

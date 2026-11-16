@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { ArrowRight, Heart, Sparkles } from "lucide-react";
 import { ProductThumb } from "@/components/catalog/product-thumb";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { startTryOn } from "@/lib/tryon/actions";
@@ -27,12 +27,18 @@ export type PickerProduct = {
  */
 export function TryOnPicker({
   products,
+  saved = [],
+  filters,
   tryons,
   isLoggedIn,
   hasPhoto,
   credits,
 }: {
   products: PickerProduct[];
+  /** Pièces sauvegardées, affichées en tête (hors filtres). */
+  saved?: PickerProduct[];
+  /** Barre de filtres, insérée entre les pièces sauvegardées et le catalogue. */
+  filters?: ReactNode;
   tryons: Record<string, { id: string; status: string }>;
   isLoggedIn: boolean;
   hasPhoto: boolean;
@@ -43,7 +49,7 @@ export function TryOnPicker({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const selected = products.find((p) => p.id === selectedId) ?? null;
+  const selected = [...saved, ...products].find((p) => p.id === selectedId) ?? null;
   const existing = selected ? tryons[selected.id] : undefined;
   const alreadyGenerated = existing?.status === "succeeded";
   const inProgress = existing?.status === "queued" || existing?.status === "processing";
@@ -84,37 +90,74 @@ export function TryOnPicker({
   else if (inProgress) subLabel = "Génération en cours";
   else if (outOfCredits) subLabel = "Crédits IA épuisés";
 
+  const renderGrid = (items: PickerProduct[]) => (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+      {items.map((p) => {
+        const isSelected = p.id === selectedId;
+        return (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setSelectedId(isSelected ? null : p.id)}
+            aria-pressed={isSelected}
+            className={cn(
+              "rounded-2xl border-2 bg-argile p-2 text-left transition-colors",
+              isSelected ? "border-terracotta" : "border-transparent hover:border-chene-dore",
+            )}
+          >
+            <ProductThumb
+              name={p.name}
+              category={p.category}
+              imagePath={p.image_path}
+              hasTryOn={tryons[p.id]?.status === "succeeded"}
+              className="mb-2"
+              sizes="(min-width: 640px) 20vw, 45vw"
+            />
+            <p className="label text-noyer">{p.brand}</p>
+            <p className="font-display text-sm leading-snug text-palissandre">{p.name}</p>
+            <p className="mt-0.5 font-body text-xs text-wenge">{formatPrice(p.price, p.currency)}</p>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <>
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-        {products.map((p) => {
-          const isSelected = p.id === selectedId;
-          return (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setSelectedId(isSelected ? null : p.id)}
-              aria-pressed={isSelected}
-              className={cn(
-                "rounded-2xl border-2 bg-argile p-2 text-left transition-colors",
-                isSelected ? "border-terracotta" : "border-transparent hover:border-chene-dore",
-              )}
+      {isLoggedIn && (
+        <div className="mb-8 rounded-3xl bg-chene-pale/60 p-4 sm:p-5">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="flex items-center gap-2 font-display text-xl text-palissandre">
+              <Heart size={16} className="fill-terracotta text-terracotta" aria-hidden /> Vos pièces sauvegardées
+            </h2>
+            <Link
+              href="/catalogue"
+              className="flex items-center gap-1 font-body text-[11px] uppercase tracking-wide text-terracotta underline underline-offset-2"
             >
-              <ProductThumb
-                name={p.name}
-                category={p.category}
-                imagePath={p.image_path}
-                hasTryOn={tryons[p.id]?.status === "succeeded"}
-                className="mb-2"
-                sizes="(min-width: 640px) 20vw, 45vw"
-              />
-              <p className="label text-noyer">{p.brand}</p>
-              <p className="font-display text-sm leading-snug text-palissandre">{p.name}</p>
-              <p className="mt-0.5 font-body text-xs text-wenge">{formatPrice(p.price, p.currency)}</p>
-            </button>
-          );
-        })}
-      </div>
+              Sauvegarder d&apos;autres pièces <ArrowRight size={12} aria-hidden />
+            </Link>
+          </div>
+          {saved.length > 0 ? (
+            renderGrid(saved)
+          ) : (
+            <p className="font-body text-xs text-wenge">
+              Touchez le cœur d&apos;une pièce dans le{" "}
+              <Link href="/catalogue" className="text-terracotta underline underline-offset-2">
+                catalogue
+              </Link>{" "}
+              pour la retrouver ici, prête à essayer.
+            </p>
+          )}
+        </div>
+      )}
+
+      {isLoggedIn && <h2 className="mb-3 font-display text-xl text-palissandre">Tout le catalogue</h2>}
+      {filters}
+      {products.length > 0 ? (
+        <div className="mt-6">{renderGrid(products)}</div>
+      ) : (
+        <p className="mt-8 font-body text-sm text-wenge">Rien d&apos;autre ici pour ces filtres. Essayez une autre combinaison.</p>
+      )}
 
       <div className="fixed inset-x-0 bottom-16 z-20 border-t border-chene-dore bg-argile/95 backdrop-blur md:bottom-0">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5 sm:py-4">

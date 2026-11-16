@@ -11,6 +11,7 @@ export const metadata: Metadata = { title: "Votre photo de référence" };
 const ERRORS: Record<string, string> = {
   chemin: "Le fichier envoyé est invalide. Réessayez.",
   consentement: "Merci d'accepter l'utilisation de votre photo pour continuer.",
+  age: "Merci de confirmer votre âge et d'accepter les conditions pour continuer.",
   enregistrement: "L'enregistrement a échoué. Réessayez.",
 };
 
@@ -33,7 +34,13 @@ export default async function OnboardingPhotoPage({ searchParams }: PageProps<"/
       <p className="mt-2 mb-8 font-body text-sm text-wenge">
         Une seule photo suffit : elle sert de base à tous vos essayages. Elle reste privée.
       </p>
-      <PhotoUploader userId={session.id} currentUrl={currentUrl} next={next} initialError={error} />
+      <PhotoUploader
+        userId={session.id}
+        currentUrl={currentUrl}
+        next={next}
+        initialError={error}
+        needsAgeConfirmation={!session.profile.age_confirmed_at}
+      />
     </section>
   );
 }

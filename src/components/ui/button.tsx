@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "ghost" | "dark";
+type Variant = "primary" | "secondary" | "ghost" | "dark" | "danger";
 type Size = "sm" | "md" | "lg";
 
 const base =
@@ -15,6 +15,7 @@ const variants: Record<Variant, string> = {
     "border border-noyer text-palissandre hover:bg-chene-pale disabled:opacity-50",
   ghost: "text-terracotta underline underline-offset-4 hover:text-brique",
   dark: "bg-palissandre text-argile hover:bg-ebene",
+  danger: "bg-brique text-argile hover:bg-palissandre",
 };
 
 const sizes: Record<Size, string> = {

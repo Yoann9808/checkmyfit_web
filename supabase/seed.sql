@@ -38,3 +38,12 @@ values
    'Chausse légèrement petit : prenez une demi-pointure au-dessus si vous êtes entre deux tailles.',
    array['36','37','38','39','40','41'], '/seed/escarpins-vernis-rouges.webp', 'Argile Studio', 'https://example.com/argile/escarpins?aff=checkmyfit', true, false)
 on conflict (external_id) do nothing;
+
+-- Attributs de filtres (matière, motif, prix barré) pour la démo
+update public.products set material = 'Coton', pattern = 'Uni' where external_id = 'DEMO-001';
+update public.products set material = 'Coton', pattern = 'Uni', compare_at_price = 99 where external_id = 'DEMO-002';
+update public.products set material = 'Viscose', pattern = 'Uni' where external_id = 'DEMO-003';
+update public.products set material = 'Satin', pattern = 'Uni', compare_at_price = 129 where external_id = 'DEMO-004';
+update public.products set material = 'Coton', pattern = 'Rayé' where external_id = 'DEMO-005';
+update public.products set material = 'Coton bio', pattern = 'Uni' where external_id = 'DEMO-006';
+update public.products set material = 'Cuir', pattern = 'Uni' where external_id = 'DEMO-007';

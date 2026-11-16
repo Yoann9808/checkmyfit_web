@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { ProductThumb } from "@/components/catalog/product-thumb";
+import { SaveButton } from "@/components/catalog/save-button";
 import { TryOnCta } from "@/components/tryon/tryon-cta";
 import { TryOnPreviewCard } from "@/components/tryon/tryon-preview-card";
 import { buttonClasses } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { defaultSizesFor } from "@/lib/catalog/taxonomy";
 import { productImageUrl } from "@/lib/catalog/images";
 import { getSessionUser } from "@/lib/auth/session";
 import { getUserTryOnForProduct } from "@/lib/tryon/queries";
+import { getSavedProductIds } from "@/lib/saved/queries";
 import { formatPrice } from "@/lib/utils";
 
 // "Essayer sur moi" lance la génération en tâche de fond (`after`) depuis cette page
@@ -33,7 +35,11 @@ export default async function ProductPage({ params }: PageProps<"/produit/[slug]
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [session, tryon] = await Promise.all([getSessionUser(), getUserTryOnForProduct(product.id)]);
+  const [session, tryon, savedIds] = await Promise.all([
+    getSessionUser(),
+    getUserTryOnForProduct(product.id),
+    getSavedProductIds(),
+  ]);
   const sizes = product.sizes.length ? product.sizes : defaultSizesFor(product.category);
   const generated = tryon?.status === "succeeded";
   const credits = session?.profile.credits_balance ?? 0;
@@ -73,16 +79,37 @@ export default async function ProductPage({ params }: PageProps<"/produit/[slug]
         </div>
 
         <div>
-          <p className="label text-noyer">{product.brand}</p>
-          <h1 className="mt-1 font-display text-3xl text-palissandre sm:text-4xl">{product.name}</h1>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="label text-noyer">{product.brand}</p>
+              <h1 className="mt-1 font-display text-3xl text-palissandre sm:text-4xl">{product.name}</h1>
+            </div>
+            <SaveButton
+              productId={product.id}
+              initialSaved={savedIds.has(product.id)}
+              isLoggedIn={Boolean(session)}
+              variant="inline"
+              className="mt-1 shrink-0"
+            />
+          </div>
           {product.color && (
             <p className="mt-2 font-display text-sm italic text-terracotta">
               {product.color} · pour {product.gender === "Unisexe" ? "tous" : product.gender}
             </p>
           )}
           <p className="mt-4 font-body text-xl text-wenge">
-            {formatPrice(Number(product.price), product.currency)}
+            {product.is_on_sale && product.compare_at_price != null && (
+              <span className="mr-2 text-base text-noyer line-through">
+                {formatPrice(Number(product.compare_at_price), product.currency)}
+              </span>
+            )}
+            <span className={product.is_on_sale ? "text-terracotta" : undefined}>
+              {formatPrice(Number(product.price), product.currency)}
+            </span>
           </p>
+          {(product.material || product.pattern) && (
+            <p className="mt-1 font-body text-xs text-noyer">{[product.material, product.pattern].filter(Boolean).join(" · ")}</p>
+          )}
 
           <div className="mt-6">
             <p className="label mb-2 text-wenge">Tailles disponibles chez {product.merchant}</p>
