@@ -3,6 +3,7 @@ import { DM_Sans, Fraunces } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { CookieBanner } from "@/components/layout/cookie-banner";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />
+        <CookieBanner />
       </body>
     </html>
   );
